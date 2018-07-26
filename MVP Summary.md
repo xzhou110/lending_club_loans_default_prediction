@@ -17,7 +17,7 @@ Following key data will be used:
 and etc.
 
 
-### Known unknowns:
+### Known Unknowns:
 - The data is provied in sqlite format. Need to study relevant tool before data manipulation.
 - Features contained in data may not have direct relationship with default. This may lead to addtional reserach and data collection
 - Assumptions made here: default pattern hasn't changed througout of years. This needs to be confirmed. 
