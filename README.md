@@ -2,9 +2,9 @@
 
 ### File Instructions: 
 
-01.Data Clean-up.ipynb: Clean up and data transformaton
-02.Modeling.ipynb: Machine Learning Analysis and visualization
-03.Lending Club_final.pptx: Presentation and summarized finding
+ol-Data Clean-up.ipynb: Clean up and data transformaton
+ol-Modeling.ipynb: Machine Learning Analysis and visualization
+ol-Lending Club_final.pptx: Presentation and summarized finding
 
 ### Background:
 
