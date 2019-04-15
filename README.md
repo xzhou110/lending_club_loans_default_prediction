@@ -1,4 +1,4 @@
-# Lending Club Loans Outcomes Prediction
+# Outcome Prediction for Lending Club Loans
 
 ### File Instructions: 
 
@@ -23,7 +23,7 @@ Started with data cleanup and transformation to prepare data for further analysi
 
 The data used for analysis is from Kaggle, covering Lending Club loans from year 2007 to 2015. The data contains 890K records.
 
-### Algorithm(s)
+### Algorithms
 
 Modeled with multiple algorithms including: Random Forest, Decision Tree, Bagging Classifier, SVC, Logistic Regression, and SGD-loc. 
 
@@ -31,15 +31,15 @@ Modeled with multiple algorithms including: Random Forest, Decision Tree, Baggin
 
 Since the purpose of the project is to predict loans that will end up with negative outcomes, we focus more on Recall/True Positive Rate. The model has an overall Accuracy Rate of 62.4%, and True Positive Rate of 72%. In another word, the model was able to detect 72% out of loans that end up with negative outcomes. 
 
-Improvement area: the model tends to over-classify loan outcomes as negative outcomes. The investment portfolios can be more conservative than expected.
-
 Key indicators of negative outcomes were identified, such as high debt-to-income-ratio, low grade level assigned by lending club, and purposes of loan (consolidation). Lending Club Loans typically demand 8%+ interest rate. Using high interest loans to refinance is not a financial-sound decision and thus regarded as negative indicator.
+
+Improvement area: the model tends to over-classify loan outcomes as negative outcomes. The investment portfolios can be more conservative than expected.
 
 ### Challenges and After-thoughts
 
 Data Transformations
 
-1. Highly imbalanced classes. Positive outcomes are ~92% (~80K records) and negative outcomes are ~7% (~66K records). Under-sampling techniques has been used to conquer imbalanced classes
+1. Highly imbalanced classes. Positive outcomes are ~92% (~80K records) and negative outcomes are ~7% (~66K records). Under-sampling techniques was used to conquer imbalanced class issue
 
 2. Many categorical features. Take a few has an example, purposes of loans, types of homeownerships, etc. The features were transformed to dummy variables for further modeling
 
