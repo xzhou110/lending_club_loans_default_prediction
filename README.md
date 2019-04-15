@@ -29,9 +29,11 @@ Modeled with multiple algorithms including: Random Forest, Decision Tree, Baggin
 
 ### Result
 
-Negative outcomes are 7.6% of total outcomes. The model has an Accuracy Rate of 62.4%, and True Positive Rate of 72%. In another word, the model was able to detect 72% out of 7.6% negative outcomes, with 28% undetected. Improvement area: the model tends to over-classify loan outcomes as negative outcomes. 
+Since the purpose of the project is to predict loans that will end up with negative outcomes, we focus more on Recall/True Positive Rate. The model has an overall Accuracy Rate of 62.4%, and True Positive Rate of 72%. In another word, the model was able to detect 72% out of loans that end up with negative outcomes. 
 
-Key indicators of negative outcomes were identified, such as high debt-to-income-ratio, low grade level assigned by lending club, and purposes of loan (consolidation). Lending Club Loans typically demand 8%+ interest rate. Using high interest loans to consolidate debt is not a financial-sound decision and thus regarded as negative indicator.
+Improvement area: the model tends to over-classify loan outcomes as negative outcomes. The investment portfolios can be more conservative than expected.
+
+Key indicators of negative outcomes were identified, such as high debt-to-income-ratio, low grade level assigned by lending club, and purposes of loan (consolidation). Lending Club Loans typically demand 8%+ interest rate. Using high interest loans to refinance is not a financial-sound decision and thus regarded as negative indicator.
 
 ### Challenges and After-thoughts
 
