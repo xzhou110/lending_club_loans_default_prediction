@@ -8,11 +8,11 @@
 
 ### Background and Scope:
 
-The project is to predict outcomes of Lending Club loans (default or not).  The project will help gain insights of defaults, understand key fetures of loans, and be able to predict outcomes with given features. 
+The project is to predict outcomes of Lending Club loans (default or not).  The project will help gain insights of defaults, understand key features of loans, and predict outcomes with given features. 
 
 ### Project design
 
-Started with data transformation to prepare data for further analysis. Modeled with multiple algorithms to identify best baseline models. Optimize selected baseline models for best performance. Multiple iterations were performed for hyper-parameters tuning.
+Started with data cleanup and transformation to prepare data for further analysis. Modeled with multiple algorithms to identify the best baseline models. Optimized selected baseline models for performance. Multiple iterations were performed for hyper-parameters tuning.
 
 ### Tools
 - Programming: Python and data science libraries, including pandas, numpy, matplotlib, etc.
@@ -29,7 +29,7 @@ Modeled with multiple algorithms including: Random Forest, Decision Tree, Baggin
 
 ### Result
 
-Negative outcomes are 7.6% of total outcomes. The model has an Accuracy Rate of 62.4%, and True Positive Rate of 72%. In another word, the model was able to detect 72% of 7.6% negative outcomes, with 28% undetected. Improvement area: the model tends to over-classify loan outcomes as negative outcomes. 
+Negative outcomes are 7.6% of total outcomes. The model has an Accuracy Rate of 62.4%, and True Positive Rate of 72%. In another word, the model was able to detect 72% out of 7.6% negative outcomes, with 28% undetected. Improvement area: the model tends to over-classify loan outcomes as negative outcomes. 
 
 Key indicators of negative outcomes were identified, such as high debt-to-income-ratio, low grade level assigned by lending club, and purposes of loan (consolidation). Lending Club Loans typically demand 8%+ interest rate. Using high interest loans to consolidate debt is not a financial-sound decision and thus regarded as negative indicator.
 
