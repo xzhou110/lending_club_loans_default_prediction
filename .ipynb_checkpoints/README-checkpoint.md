@@ -1,4 +1,4 @@
-# Lending Club Loans Default Prediction
+# Outcome Prediction for Lending Club Loans
 
 ### File Instructions: 
 
