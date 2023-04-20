@@ -18,9 +18,14 @@ def preprocess_data(df, label='label', missing_threshold=0.9):
     """
     
     
-    
     # Create a copy of the input DataFrame to avoid SettingWithCopyWarning
     df = df.copy()
+    
+    # Extract target variable
+    y = df[label]
+
+    # Drop target variable from the DataFrame
+    df = df.drop(columns=[label])
 
     # Drop columns with more than the specified missing threshold
     df = df.loc[:, df.isna().mean() < missing_threshold]
@@ -40,8 +45,8 @@ def preprocess_data(df, label='label', missing_threshold=0.9):
     categorical_columns = df.select_dtypes(include=['object']).columns.tolist()
     print("Step 3: Identified numerical and categorical columns")
 
-    # Exclude target variable from the list of numerical columns
-    numerical_columns = [col for col in numerical_columns if col != label]
+    # Check if target variable is numerical. If so, exclude target variable from the list of numerical columns
+   # numerical_columns = [col for col in numerical_columns]
 
     # Handle missing values for numerical columns
     for col in numerical_columns:
@@ -55,14 +60,14 @@ def preprocess_data(df, label='label', missing_threshold=0.9):
         df[col] = np.where((df[col] < lower_bound[col]) | (df[col] > upper_bound[col]), df[col].median(), df[col])
     print("Step 5: Excluded extreme values for numerical columns")
 
-    # Extract target variable
-    y = df[label]
-
-    # Drop target variable from the DataFrame
-    df = df.drop(columns=[label])
-
+    # Find columns with too many unique values and drop those
+    max_unique_values = 50
+    categorical_columns_to_drop = [col for col in categorical_columns if df[col].nunique() > max_unique_values]
+    df.drop(columns = categorical_columns_to_drop, inplace=True)
+    remaining_categorical_columns = list(set(categorical_columns) - set(categorical_columns_to_drop))
+    
     # Create dummy variables for categorical columns
-    df = pd.get_dummies(df, columns=categorical_columns, dummy_na=True, drop_first=True)
+    df = pd.get_dummies(df, columns=remaining_categorical_columns, dummy_na=True, drop_first=True)
     print("Step 6: Created dummy variables for categorical columns")
 
     # Standardize numerical columns
