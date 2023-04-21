@@ -1,3 +1,17 @@
+import time
+import pickle
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import GridSearchCV
+from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+from xgboost import XGBClassifier
+from sklearn.metrics import (accuracy_score, precision_score, recall_score,f1_score, roc_auc_score, roc_curve, auc)
+from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
+
 def run_classification_models(X_processed, y, grid_search=False):
     # Split the data into train and test sets
     X_train, X_test, y_train, y_test = train_test_split(X_processed, y, test_size=0.2, random_state=42)
@@ -30,9 +44,10 @@ def run_classification_models(X_processed, y, grid_search=False):
         start_time = time.time()
 
         if grid_search:
-            model = GridSearchCV(model, grid, scoring='roc_auc', cv=5, n_jobs=-1)
-
-        model.fit(X_train, y_train)
+            model = GridSearchCV(model, grid, scoring='roc_auc', cv=5, n_jobs=-1, refit=True)
+            model.fit(X_processed, y)  # Refit on the entire dataset
+        else: 
+            model.fit(X_train, y_train)
         exec_time = time.time() - start_time
 
         print(f"{model_name}: Done (Execution Time: {exec_time:.2f} seconds)")
@@ -94,9 +109,11 @@ def run_classification_models(X_processed, y, grid_search=False):
     
     # Save the best performing model to a pickle file
     best_model_name, best_model_instance, _ = models[best_model_idx]
+    if grid_search:
+        best_model_instance = best_model_obj.best_estimator_
     with open(f"{best_model_name}_best_model.pkl", "wb") as file:
         pickle.dump(best_model_instance, file)
     print(f"\nSaved best model ({best_model_name}) to a pickle file.")
     
     # Return the best performing model object for future reuse
-    return best_model_obj
+    return best_model_instance
