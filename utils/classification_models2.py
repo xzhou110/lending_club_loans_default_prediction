@@ -14,7 +14,7 @@ from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 
 
-def run_classification_models(X_processed, y, search_type=None, time_limit=600):
+def run_classification_models(X_processed, y, search_type=None):
     """
     Train and evaluate multiple classification models on the given dataset.
 
@@ -30,9 +30,6 @@ def run_classification_models(X_processed, y, search_type=None, time_limit=600):
         The target variable (y) as a pandas Series.
     search_type : str, optional
         The type of hyperparameter search to perform. Choices are 'grid', 'random', or None. Default is None.
-    time_limit : int, optional
-        The time limit in seconds for training each model. If the time limit is exceeded, the dataset will be
-        downsampled. Default is 600 seconds.
 
     Returns
     -------
@@ -74,18 +71,6 @@ def run_classification_models(X_processed, y, search_type=None, time_limit=600):
         model = fit_model(search_type, model, grid, X_train, y_train)
         # Calculate execution time
         exec_time = time.time() - start_time
-        
-        # If execution time exceeds the time limit, downsample the data
-        if exec_time > time_limit:
-            print(f"{model_name}: Time limit exceeded. Downsizing to 10k records.")
-            X_processed_sampled, _, y_sampled, _ = train_test_split(X_processed, y, train_size=50000, random_state=42)
-            X_train, X_test, y_train, y_test = train_test_split(X_processed_sampled, y_sampled, test_size=0.2, random_state=42)
-            start_time = time.time()
-            # Fit the model with downsampled data
-            model = fit_model(search_type, model, grid, X_train, y_train, X_processed_sampled, y_sampled)
-            # Update execution time
-            exec_time = time.time() - start_time
-
         print(f"{model_name}: Done (Execution Time: {exec_time:.2f} seconds)")
 
         y_pred = model.predict(X_test)
