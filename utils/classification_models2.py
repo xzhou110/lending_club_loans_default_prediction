@@ -11,10 +11,11 @@ from sklearn.svm import SVC
 from xgboost import XGBClassifier
 from sklearn.metrics import (accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, roc_curve, auc)
 from sklearn.model_selection import train_test_split
+from imblearn.over_sampling import SMOTE
 import matplotlib.pyplot as plt
 
 
-def run_classification_models(X_processed, y, search_type=None):
+def run_classification_models(X_processed, y, search_type=None, scoring_metric='ROC AUC'):
     """
     Train and evaluate multiple classification models on the given dataset.
 
@@ -30,15 +31,23 @@ def run_classification_models(X_processed, y, search_type=None):
         The target variable (y) as a pandas Series.
     search_type : str, optional
         The type of hyperparameter search to perform. Choices are 'grid', 'random', or None. Default is None.
+    scoring_metric : str, optional
+        The scoring metric to optimize during hyperparameter tuning and to select the best model. 
+        Some options are 'Accuracy', 'Precision', 'Recall', 'F1 Score', and 'ROC AUC'. Default is 'ROC AUC'.
 
     Returns
     -------
     best_model_instance : object
-        The best performing model instance (fitted) according to the highest ROC AUC score.
+        The best performing model instance (fitted) according to the highest score of the scoring_metric.
     """
     
     # Split the data into train and test sets
     X_train, X_test, y_train, y_test = train_test_split(X_processed, y, test_size=0.2, random_state=42)
+    
+    
+    # Handling class imbalance with SMOTE
+    smote = SMOTE(random_state=42)
+    X_train, y_train = smote.fit_resample(X_train, y_train)
 
     # Hyperparameter grids
     lr_grid = {'C': [0.001, 0.01, 0.1, 1, 10, 100], 'max_iter': [500, 1000, 3000]}
@@ -60,15 +69,19 @@ def run_classification_models(X_processed, y, search_type=None):
 
     plt.figure(figsize=(20, 12))
     ax = plt.gca()
-
+    
+    performance_metrics = ['Accuracy', 'Precision', 'Recall', 'F1 Score', 'ROC AUC']
+    if scoring_metric not in performance_metrics:
+        raise ValueError(f"Invalid scoring_metric. Expected one of: {performance_metrics}")
+        
     best_model_obj = None
     best_model_performance = None
 
     # Iterate through the models and evaluate their performance
     for model_name, model, grid in models:
         start_time = time.time()
-        # Fit the model
-        model = fit_model(search_type, model, grid, X_train, y_train)
+        model = fit_model(search_type, model, grid, X_train, y_train, scoring_metric)
+        exec_time = time.time() - start_time
         # Calculate execution time
         exec_time = time.time() - start_time
         print(f"{model_name}: Done (Execution Time: {exec_time:.2f} seconds)")
@@ -78,19 +91,32 @@ def run_classification_models(X_processed, y, search_type=None):
         
         # Train and evaluate the model
         accuracy, precision, recall, f1, roc_auc = train_and_evaluate_model(model, X_train, y_train, X_test, y_test)
+        performance_metrics_values = [accuracy, precision, recall, f1, roc_auc]
+        
+        # # Append model performance metrics to the model_performance DataFrame
+        # model_performance = model_performance.append({
+        #     'Model': model_name,
+        #     'Accuracy': accuracy,
+        #     'Precision': precision,
+        #     'Recall': recall,
+        #     'F1 Score': f1,
+        #     'ROC AUC': roc_auc
+        # }, ignore_index=True)
         
         # Append model performance metrics to the model_performance DataFrame
-        model_performance = model_performance.append({
-            'Model': model_name,
-            'Accuracy': accuracy,
-            'Precision': precision,
-            'Recall': recall,
-            'F1 Score': f1,
-            'ROC AUC': roc_auc
-        }, ignore_index=True)
+        # Using pd.concat instead of DataFrame.append to avoid the FutureWarning
+        performance_df = pd.DataFrame({
+            'Model': [model_name],
+            'Accuracy': [accuracy],
+            'Precision': [precision],
+            'Recall': [recall],
+            'F1 Score': [f1],
+            'ROC AUC': [roc_auc]
+        })
+        model_performance = pd.concat([model_performance, performance_df], ignore_index=True)
         
-        # Update the best performing model
-        if best_model_performance is None or roc_auc > best_model_performance['ROC AUC']:
+         # Update the best performing model
+        if best_model_performance is None or performance_metrics_values[performance_metrics.index(scoring_metric)] > best_model_performance[scoring_metric]:
             best_model_obj = model
             best_model_performance = model_performance.iloc[-1]
 
@@ -157,19 +183,15 @@ def downsample_data(X, y, target_records=50000, random_state=42):
 
     return X_downsampled, y_downsampled
 
-def fit_model(search_type, model, grid, X_train, y_train, X_processed_sampled=None, y_sampled=None):
+def fit_model(search_type, model, grid, X_train, y_train, scoring_metric='ROC AUC'):
     if search_type == "grid":
-        model = GridSearchCV(model, grid, scoring='roc_auc', cv=5, n_jobs=-1, refit=True)
-        if X_processed_sampled is not None and y_sampled is not None:
-            model.fit(X_processed_sampled, y_sampled)
-        else:
-            model.fit(X_train, y_train)
+        model = GridSearchCV(model, grid,
+        scoring=scoring_metric.lower(), cv=5, n_jobs=-1, refit=True)
+        model.fit(X_train, y_train)
     elif search_type == "random":
-        model = RandomizedSearchCV(model, grid, n_iter=10, scoring='roc_auc', cv=5, n_jobs=-1, refit=True, random_state=42)
-        if X_processed_sampled is not None and y_sampled is not None:
-            model.fit(X_processed_sampled, y_sampled)
-        else:
-            model.fit(X_train, y_train)
+        model = RandomizedSearchCV(model, grid, n_iter=10, 
+        scoring=scoring_metric.lower(), cv=5, n_jobs=-1, refit=True, random_state=42)
+        model.fit(X_train, y_train)
     else:
         model.fit(X_train, y_train)
     return model
