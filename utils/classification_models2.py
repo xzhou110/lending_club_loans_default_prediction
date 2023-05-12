@@ -1,4 +1,5 @@
 import time
+import datetime
 import pickle
 import concurrent.futures
 import pandas as pd
@@ -156,7 +157,9 @@ def run_classification_models(X_processed, y, search_type=None, scoring_metric='
     best_model_name, best_model_instance, _ = models[best_model_idx]
     if search_type in ["grid", "random"]:
         best_model_instance = best_model_obj.best_estimator_
-    with open(f"{best_model_name}_best_model.pkl", "wb") as file:
+    # Create a timestamped filename
+    current_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    with open(f"./res/{best_model_name}_best_model_{current_time}.pkl", "wb") as file:
         pickle.dump(best_model_instance, file)
     print(f"\nSaved best model ({best_model_name}) to a pickle file.")
     
