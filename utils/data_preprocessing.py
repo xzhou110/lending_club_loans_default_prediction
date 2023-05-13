@@ -78,6 +78,10 @@ def preprocess_data(df, label='label', missing_threshold=0.9, max_unique_values_
     df = standardize_numerical_columns(df)
     logging.info("Standardized numerical columns")
 
+    # Clean feature names for XGBoost
+    df = clean_feature_names(df)
+    logging.info("Cleaned feature names for XGBoost")
+
     # Combine the processed features and the label into a single DataFrame
     df.reset_index(drop=True, inplace=True)
     result_df = pd.concat([df, pd.Series(y, name=label)], axis=1)
@@ -150,3 +154,25 @@ def standardize_numerical_columns(df):
     scaler = StandardScaler()
     df[numerical_columns] = scaler.fit_transform(df[numerical_columns])
     return df
+
+
+def clean_feature_names_for_xgboost(df):
+    """
+    Clean column names to meet the requirements of XGBoost.
+    XGBoost (at least the version used at the time of writing) does not accept feature names with special characters like '<', '[' or ']'.
+    This function replaces these special characters with corresponding text representations.
+
+    Parameters:
+    ----------
+    df : pandas.DataFrame
+        DataFrame whose column names are to be cleaned.
+
+    Returns:
+    -------
+    df : pandas.DataFrame
+        DataFrame with cleaned column names.
+    """
+    df.columns = df.columns.astype(str).str.replace('[', '_replace_bracket_open_', regex=True).str.replace(']', '_replace_bracket_close_', regex=True).str.replace('<', '_smaller_than_', regex=True)
+    logging.info("Cleaned feature names for XGBoost")
+    return df
+

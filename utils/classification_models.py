@@ -88,8 +88,6 @@ def run_classification_models(X_processed, y, search_type=None, scoring_metric='
         start_time = time.time()
         model = fit_model(search_type, model, grid, X_train, y_train, scoring_metric)
         exec_time = time.time() - start_time
-        # Calculate execution time
-        exec_time = time.time() - start_time
         print(f"{model_name}: Done (Execution Time: {exec_time:.2f} seconds)")
 
         y_pred = model.predict(X_test)
