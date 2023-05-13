@@ -1,46 +1,44 @@
 # Lending Club Loans Default Prediction
 
-### File Instructions: 
+This project aims to predict the outcomes of Lending Club loans, specifically whether a loan will default or not. Understanding the key features influencing loan outcomes can offer valuable insights into default patterns and aid in predicting future loan performance.
 
-1. Data Clean-up.ipynb: Data cleanup and transformation
-2. Modeling.ipynb: Machine Learning Analysis and visualization
-3. Lending Club_final.pptx: Presentation and summarized finding
+## Project Structure
 
-### Background and Scope:
+The project is divided into various notebooks and utility scripts for different stages of the data science pipeline, as follows:
 
-The project is to predict outcomes of Lending Club loans (default or not).  The project will help gain insights of defaults, understand key features of loans, and predict outcomes with given features. 
+1. **Data Cleansing and Transformation**: `data_cleansing_new.ipynb` script handles the data cleanup and transformation steps required to prepare the data for further analysis.
 
-### Project design
+2. **Machine Learning Analysis and Visualization**: `modeling_new.ipynb` script contains the machine learning analysis and visualization of the processed data.
 
-Started with data cleanup and transformation to prepare data for further analysis. Modeled with multiple algorithms to identify the best baseline models. Optimized selected baseline models for performance. Multiple iterations were performed for hyper-parameters tuning.
+3. **Utilities**: These scripts provide auxiliary functions for the project.
+   - `data_preprocessing.py`: Contains functions for data preprocessing.
+   - `feature_selection.py`: Contains functions for feature selection.
+   - `classification_models.py`: Contains functions for training and evaluating various classification models.
 
-### Tools
-- Programming: Python and data science libraries, including pandas, numpy, matplotlib, etc.
-- Modeling: Scikit-learn Algorithms
-- Visualization: Matplotlib, ROC Curve and Confusion Matrix
+## Project Design
 
-### Data
+The project began with data cleanup and transformation to prepare the data for further analysis. Multiple machine learning algorithms were then used to create baseline models for the prediction task. The most promising models were selected for optimization, with multiple iterations performed for hyperparameter tuning.
 
-The data used for analysis is from Kaggle, covering Lending Club loans from year 2007 to 2015. The data contains 890K records.
+## Tools Utilized
 
-### Algorithms
+- **Programming**: The project utilizes Python and a range of data science libraries, including pandas, numpy, matplotlib, among others.
+- **Modeling**: Scikit-learn was used for machine learning model creation.
+- **Visualization**: Matplotlib was used for data visualization. Additionally, ROC Curve and Confusion Matrix were used for model performance visualization.
 
-Modeled with multiple algorithms including: Random Forest, Decision Tree, Bagging Classifier, SVC, Logistic Regression, and SGD-loc. 
+## Data Source
 
-### Result
+The dataset used for this project is obtained from Kaggle, which consists of Lending Club loan data spanning from 2007 to 2015. The dataset comprises approximately 890K records.
 
-Since the purpose of the project is to predict loans that will end up with negative outcomes, we focus more on Recall/True Positive Rate. The model has an overall Accuracy Rate of 62.4%, and True Positive Rate of 72%. In another word, the model was able to detect 72% out of loans that end up with negative outcomes. 
+## Algorithms Utilized
 
-Key indicators of negative outcomes were identified, such as high debt-to-income-ratio, low grade level assigned by lending club, and purposes of loan (consolidation). Lending Club Loans typically demand 8%+ interest rate. Using high interest loans to refinance is not a financial-sound decision and thus regarded as negative indicator.
+The project involved the use of multiple machine learning algorithms, including Random Forest, Decision Tree, Bagging Classifier, SVC, Logistic Regression, and SGD-loc.
 
-Improvement area: the model tends to over-classify loan outcomes as negative outcomes. The investment portfolios can be more conservative than expected.
+## Results and Key Findings
 
-### Challenges and After-thoughts
+The primary objective of this project is to accurately predict loans likely to result in default. Consequently, the model performance was evaluated with a focus on the Recall or True Positive Rate. 
 
-Data Transformations
+The best-performing model achieved an overall accuracy rate of 62.4%, with a True Positive Rate of 72%. This means the model was able to accurately predict 72% of loans that ended up in default.
 
-1. Highly imbalanced classes. Positive outcomes are ~92% (~80K records) and negative outcomes are ~7% (~66K records). Under-sampling techniques was used to conquer imbalanced class issue
+Key features influencing loan defaults were identified, including high debt-to-income ratio, low grade level assigned by Lending Club, and the purpose of the loan (particularly for debt consolidation). Interestingly, the model indicated that using high-interest loans for refinancing, which is generally not a financially sound decision, is a negative indicator.
 
-2. Many categorical features. Take a few has an example, purposes of loans, types of homeownerships, etc. The features were transformed to dummy variables for further modeling
-
-3. Combining features. A few features need to be combined to provide meaningful information for loans. Take asset and debt level as an example. The actual amounts can vary considerably from loan to loan. In order to provide meaningful loan-related information, we combined and converted them to debt-to-income ratios, and income-to-payment coverage ratios as a result.
+One potential area for improvement is that the model currently tends to over-predict negative outcomes, which could lead to a more conservative than desired investment portfolio.
