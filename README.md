@@ -8,7 +8,7 @@ The project is divided into various notebooks and utility scripts for different 
 
 1. **Data Cleansing and Transformation**: `data_cleansing_new.ipynb` script handles the data cleanup and transformation steps required to prepare the data for further analysis.
 
-2. **Machine Learning Analysis and Visualization**: `modeling.ipynb` script contains the machine learning analysis and visualization of the processed data.
+2. **Machine Learning Analysis and Visualization**: `modeling_new.ipynb` script contains the machine learning analysis and visualization of the processed data.
 
 3. **Utilities**: These scripts provide auxiliary functions for the project.
    - `data_preprocessing.py`: Contains functions for data preprocessing.
@@ -42,14 +42,3 @@ The best-performing model achieved an overall accuracy rate of 62.4%, with a Tru
 Key features influencing loan defaults were identified, including high debt-to-income ratio, low grade level assigned by Lending Club, and the purpose of the loan (particularly for debt consolidation). Interestingly, the model indicated that using high-interest loans for refinancing, which is generally not a financially sound decision, is a negative indicator.
 
 One potential area for improvement is that the model currently tends to over-predict negative outcomes, which could lead to a more conservative than desired investment portfolio.
-
-## Challenges Encountered and Mitigation Strategies
-
-1. **Class Imbalance**: The dataset had highly imbalanced classes, with positive outcomes representing about 92% (~80K records) and negative outcomes about 7% (~66K records). To handle this issue, under-sampling techniques were utilized.
-
-2. **Categorical Features**: The dataset contained many categorical features like loan purposes, types of homeownerships, etc. These features were converted into dummy variables for machine learning modeling.
-
-3. **Feature Engineering**: Several features were combined to provide meaningful information. For example, asset and debt levels were converted into debt-to-income ratios and income-to-payment coverage ratios to offer relevant loan-related information.
-   
-By addressing these challenges, the project provides a robust model for predicting loan defaults, contributing valuable insights for the Lending Club and
-
