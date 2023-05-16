@@ -253,6 +253,9 @@ def plot_top_n_features(model, X_processed, n=10):
 
     # Get the feature names from X_processed
     feature_names = X_processed.columns.tolist()
+    
+    top_n_features = {}
+    top_n_features = {feature_names[i]: importances[i] for i in top_n_indices}
 
     # Prepare colors. Create a custom colormap that goes from medium green to light blue.
     # cmap = mcolors.LinearSegmentedColormap.from_list("n",["#008000", "#0000CD"])
@@ -267,3 +270,5 @@ def plot_top_n_features(model, X_processed, n=10):
     plt.grid(axis='x')
     plt.tight_layout()
     plt.show()
+    
+    return top_n_features

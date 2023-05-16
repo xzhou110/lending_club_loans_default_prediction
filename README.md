@@ -4,26 +4,22 @@ This project aims to predict the outcomes of Lending Club loans, specifically wh
 
 ## Project Structure
 
-The project is divided into various notebooks and utility scripts for different stages of the data science pipeline, as follows:
+The project is divided into various scripts and classes for different stages of the data science pipeline, as follows:
 
-1. **Data Cleansing and Transformation**: `data_cleansing_new.ipynb` script handles the data cleanup and transformation steps required to prepare the data for further analysis.
-
-2. **Machine Learning Analysis and Visualization**: `modeling_new.ipynb` script contains the machine learning analysis and visualization of the processed data.
-
-3. **Utilities**: These scripts provide auxiliary functions for the project.
-   - `data_preprocessing.py`: Contains functions for data preprocessing.
-   - `feature_selection.py`: Contains functions for feature selection.
-   - `classification_models.py`: Contains functions for training and evaluating various classification models.
+1. **Data Preprocessing**: `data_preprocessing.py` handles the data cleanup, transformation, and preprocessing steps required to prepare the data for further analysis.
+2. **Feature Selection**: `feature_selection.py` contains functions for selecting the most relevant features for the machine learning models.
+3. **Modeling**: `classification_models.py` contains functions for training, evaluating and selecting various classification models.
+4. **Machine Learning Pipeline**: `ml_pipeline.py` is a Python class that consolidates all the individual functions from the preprocessing, feature selection, and modeling scripts. This class provides a unified and streamlined interface for the entire machine learning pipeline.
 
 ## Project Design
 
-The project began with data cleanup and transformation to prepare the data for further analysis. Multiple machine learning algorithms were then used to create baseline models for the prediction task. The most promising models were selected for optimization, with multiple iterations performed for hyperparameter tuning.
+The project begins with data preprocessing to prepare the data for further analysis. The most relevant features are then selected using the Recursive Feature Elimination with Cross-Validation (RFECV) method. Multiple machine learning algorithms are then used to create models for the prediction task. The most promising models are selected for optimization, with multiple iterations performed for hyperparameter tuning.
 
 ## Tools Utilized
 
-- **Programming**: The project utilizes Python and a range of data science libraries, including pandas, numpy, matplotlib, among others.
-- **Modeling**: Scikit-learn was used for machine learning model creation.
-- **Visualization**: Matplotlib was used for data visualization. Additionally, ROC Curve and Confusion Matrix were used for model performance visualization.
+- **Programming**: The project utilizes Python and a range of data science libraries, including pandas, numpy, scikit-learn, among others.
+- **Modeling**: Scikit-learn was used for machine learning model creation. Recursive Feature Elimination with Cross-Validation (RFECV) was used for feature selection.
+- **Visualization**: Matplotlib was used for data visualization. Additionally, ROC Curve, Confusion Matrix, and Precision-Recall Curve were used for model performance visualization.
 
 ## Data Source
 
@@ -31,14 +27,25 @@ The dataset used for this project is obtained from Kaggle, which consists of Len
 
 ## Algorithms Utilized
 
-The project involved the use of multiple machine learning algorithms, including Random Forest, Decision Tree, Bagging Classifier, SVC, Logistic Regression, and SGD-loc.
+The project involved the use of multiple machine learning algorithms, including RandomForestClassifier, DecisionTreeClassifier, BaggingClassifier, SVC, LogisticRegression, and SGD-loc.
 
 ## Results and Key Findings
 
-The primary objective of this project is to accurately predict loans likely to result in default. Consequently, the model performance was evaluated with a focus on the Recall or True Positive Rate. 
+The primary objective of this project is to predict loans likely to result in default. The XGBoost model, without extensive optimization, emerged as the best-performing model, achieving an accuracy rate of 0.9686 and an F1 score of 0.741. 
 
-The best-performing model achieved an overall accuracy rate of 62.4%, with a True Positive Rate of 72%. This means the model was able to accurately predict 72% of loans that ended up in default.
+### Top Influential Features 
 
-Key features influencing loan defaults were identified, including high debt-to-income ratio, low grade level assigned by Lending Club, and the purpose of the loan (particularly for debt consolidation). Interestingly, the model indicated that using high-interest loans for refinancing, which is generally not a financially sound decision, is a negative indicator.
+- 'initial_list_status_w' had the highest influence on loan default prediction, indicating the importance of the initial listing status of the loan.
+- 'inq_last_6mths', which represents the number of inquiries in the last six months (excluding auto and mortgage inquiries), is a key determinant of loan default, indicating that a higher number of recent credit inquiries may correlate with higher risk.
+- Other notable features are 'term_ 60 months', suggesting that longer-term loans are more likely to default, and 'home_ownership_RENT', implying that borrowers who rent their homes might be more likely to default compared to homeowners.
+- 'last_pymnt_amnt' and 'out_prncp', representing the last payment amount and the outstanding principal, respectively, also have significant influence on the prediction of loan default.
 
-One potential area for improvement is that the model currently tends to over-predict negative outcomes, which could lead to a more conservative than desired investment portfolio.
+These features, along with others, provide a comprehensive view of the factors that influence loan default, thereby enabling more accurate predictions and risk assessment.
+
+## Future Improvements and Recommendations
+
+Despite its solid performance, the XGBoost model showed a tendency towards overfitting, which could lead to under-identification of default loans in a real-world setting. To address this, future work may involve further model optimization, including hyper-parameter tuning, to improve model generalizability.
+
+Moreover, while the current model provides valuable insights, there are additional factors, such as macroeconomic indicators, that could potentially influence loan default rates. Incorporating such features could further enhance the predictive power of the model. 
+
+Finally, the model could potentially be improved by using more sophisticated techniques, such as ensemble methods or deep learning, as well as by leveraging additional computational resources for more extensive model training and optimization. 
