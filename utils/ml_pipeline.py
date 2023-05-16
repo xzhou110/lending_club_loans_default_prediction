@@ -27,12 +27,66 @@ logging.basicConfig(level=logging.INFO)
 
 
 class MLPipeline:
+    """
+    A class used to preprocess data for machine learning.
+
+
+    Attributes
+    ----------
+    data_raw : pandas.DataFrame
+        Raw data before preprocessing.
+    data_processed : pandas.DataFrame
+        Data after preprocessing.
+    label_encoding : dict
+        Dictionary mapping original class labels to encoded labels.
+    ml_type : str
+        Type of machine learning problem ('classification', 'regression', 'clustering').
+    selected_features : list
+        List of selected features after feature selection process.
+    best_model_instance: object
+        The trained model object that is found to have the best performance during hyperparameter tuning process.
+    
+    Methods
+    -------
+    preprocess_data(missing_threshold, max_unique_values_cat, correlation_threshold, n_features_to_select, estimator, n_samples)
+        Preprocess the data by handling missing values, encoding categorical variables, handling date columns, etc.
+    encode_labels(df, label)
+        Encode the class labels in the data.
+    drop_missing_value_columns(df, missing_threshold)
+        Drop columns with a percentage of missing values higher than a specified threshold.
+    process_date_columns(df)
+        Process date columns by converting them to the number of days relative to the current date.
+    handle_missing_values_numerical(df)
+        Handle missing values in numerical columns by replacing them with the median of the column.
+    handle_extreme_values_numerical(df)
+        Handle extreme values in numerical columns by winsorizing them.
+    create_dummy_variables(df, max_unique_values_cat)
+        Create dummy variables for categorical columns with a number of unique values lower than a specified threshold.
+    handle_high_correlation(df, correlation_threshold)
+        Remove one of a pair of features with a correlation higher than a specified threshold.
+    standardize_numerical_columns(df)
+        Standardize numerical columns to have a mean of 0 and a standard deviation of 1.
+    clean_feature_names(df)
+        Clean feature names to ensure compatibility with XGBoost.
+    train_and_evaluate_model(model, X_train, y_train, X_test, y_test)
+        Train and evaluate a model, returning several metrics.
+    downsample_data(X, y, target_records=50000, random_state=42)
+        Downsample the data to a specified number of records.
+    fit_model(search_type, model, grid, X_train, y_train, scoring_metric='ROC AUC')
+        Fit a model using either GridSearchCV or RandomizedSearchCV, or without any hyperparameter tuning.
+    plot_roc_curve(model_name, y_test, y_pred_proba, ax)
+        Plot the ROC curve for a model.
+    plot_top_n_features(n=10)
+        Plot the top n features of importance for the best model.
+    """
+    
     def __init__(self, data, ml_type='classification'):
         self.data = data
         self.data_processed = None
         self.ml_type = ml_type
         self.selected_features = None
         self.best_model_instance = None
+        self.top_n_features = None
         
         
     def preprocess_data(self, label='label', missing_threshold=0.9, max_unique_values_cat=50, correlation_threshold=0.9):
@@ -422,20 +476,6 @@ class MLPipeline:
     
     
     def clean_feature_names(self, df):
-        """
-        Cleans the feature names in the DataFrame. This function ensures that all feature names are strings and 
-        do not contain any characters that XGBoost does not accept ([, ] or <).
-
-        Parameters:
-        -----------
-        df : pandas.DataFrame
-            The input DataFrame.
-
-        Returns:
-        --------
-        df : pandas.DataFrame
-            The DataFrame with cleaned feature names.
-        """
         # Replace problematic characters with underscore
         df.columns = df.columns.astype(str).str.replace('[', '_replace_bracket_open_', regex=True).str.replace(']', '_replace_bracket_close_', regex=True).str.replace('<', '_smaller_than_', regex=True)
         return df
@@ -532,6 +572,9 @@ class MLPipeline:
 
         # Get the feature names from X_processed
         feature_names = X_processed.columns.tolist()
+        
+        # Store the top n feature names and their importances in an instance variable
+        self.top_n_features = {feature_names[i]: importances[i] for i in top_n_indices}
 
         # Prepare colors. Create a custom colormap that goes from medium green to light blue.
         # cmap = mcolors.LinearSegmentedColormap.from_list("n",["#008000", "#0000CD"])
@@ -546,4 +589,6 @@ class MLPipeline:
         plt.grid(axis='x')
         plt.tight_layout()
         plt.show()
+        
+        return self.top_n_features 
 
