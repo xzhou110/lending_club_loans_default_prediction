@@ -161,16 +161,6 @@ def clean_feature_names_for_xgboost(df):
     Clean column names to meet the requirements of XGBoost.
     XGBoost (at least the version used at the time of writing) does not accept feature names with special characters like '<', '[' or ']'.
     This function replaces these special characters with corresponding text representations.
-
-    Parameters:
-    ----------
-    df : pandas.DataFrame
-        DataFrame whose column names are to be cleaned.
-
-    Returns:
-    -------
-    df : pandas.DataFrame
-        DataFrame with cleaned column names.
     """
     df.columns = df.columns.astype(str).str.replace('[', '_replace_bracket_open_', regex=True).str.replace(']', '_replace_bracket_close_', regex=True).str.replace('<', '_smaller_than_', regex=True)
     logging.info("Cleaned feature names for XGBoost")
