@@ -8,43 +8,36 @@ from sklearn.decomposition import PCA
 from scipy.stats import pearsonr
 import pandas as pd
 import numpy as np
+from sklearn.preprocessing import OneHotEncoder  # Add this import at the top
 
 class DateTransformer(BaseEstimator, TransformerMixin):
     def fit(self, X, y=None):
         return self
 
     def transform(self, X, y=None):
+        X = X.copy()
         for col in X.columns:
             X[col] = (pd.Timestamp.now() - pd.to_datetime(X[col])).dt.days
         return X
 
-
 class ExtremeValuesNumericalHandler(BaseEstimator, TransformerMixin):
+    def __init__(self, columns=None):
+        self.columns = columns
+        self.lower_bound = None
+        self.upper_bound = None
+        
     def fit(self, X, y=None):
+        X = pd.DataFrame(X, columns=self.columns)  # Convert to DataFrame
         self.lower_bound = X.quantile(0.05)
         self.upper_bound = X.quantile(0.95)
         return self
-
-    def transform(self, X, y=None):
-        for col in X.columns:
+    
+    def transform(self, X):
+        X = pd.DataFrame(X, columns=self.columns)  # Convert to DataFrame
+        for col in self.columns:
             X[col] = np.where(X[col] < self.lower_bound[col], self.lower_bound[col], X[col])
             X[col] = np.where(X[col] > self.upper_bound[col], self.upper_bound[col], X[col])
-        return X
-
-
-class DropHighCorrelation(BaseEstimator, TransformerMixin):
-    def __init__(self, correlation_threshold=0.9):
-        self.correlation_threshold = correlation_threshold
-
-    def fit(self, X, y=None):
-        corr_matrix = X.corr().abs()
-        upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(np.bool))
-        self.columns_to_drop = [col for col in upper.columns if any(upper[col] > self.correlation_threshold)]
-        return self
-
-    def transform(self, X, y=None):
-        X = X.drop(columns=self.columns_to_drop)
-        return X
+        return X.values
 
 
 class DummyVariableCreator(BaseEstimator, TransformerMixin):
@@ -57,6 +50,7 @@ class DummyVariableCreator(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X, y=None):
+        X = X.copy()
         X = X.drop(columns=self.columns_to_drop)
         X = pd.get_dummies(X, columns=self.columns_to_encode, dummy_na=True, drop_first=True)
         return X
@@ -66,22 +60,22 @@ class LoggingPipeline(Pipeline):
         message = X.shape
         for name, step in self.steps[:-1]:
             X = step[1].fit_transform(X, y, **fit_params)
-            logging.info(f"Finished {name}, Input shape: {message}, Output shape: {X.shape}")
+            logging.info(f"Finished {name}, Input shape: {message}, Output shape: {X.shape}, Column names: {X.columns.tolist()}")
             message = X.shape
         self.steps[-1][1].fit(X, y, **fit_params)
-        logging.info(f"Finished {self.steps[-1][0]}")
+        logging.info(f"Finished {self.steps[-1][0]}, Input shape: {message}, Output shape: {X.shape}, Column names: {X.columns.tolist()}")
         return self
 
 def preprocessing_pipeline(df):
     # Define the pipeline steps
     date_pipeline = LoggingPipeline([
-    ('to_days', FunctionTransformer(convert_to_days))
+    ('to_days', DateTransformer())
 ])
 
     numerical_pipeline = LoggingPipeline([
         ('imputer', SimpleImputer(strategy='median')),
+        ('winsorizer', ExtremeValuesNumericalHandler()),
         ('scaler', StandardScaler()),
-        ('winsorizer', FunctionTransformer(winsorize_numerical, kw_args={'limits': [0.05, 0.05]}))
     ])
 
     categorical_pipeline = LoggingPipeline([
