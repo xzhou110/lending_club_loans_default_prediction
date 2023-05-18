@@ -7,6 +7,8 @@ from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 import numpy as np
 
+logging.basicConfig(level=logging.INFO)
+
 def select_features(X_train, y_train=None, min_features_to_select=10, n_features_to_select=None, ml_type='classification', estimator=None, n_samples=None):
     """
     Selects the most relevant features for a machine learning model using Recursive Feature Elimination 
@@ -48,7 +50,7 @@ def select_features(X_train, y_train=None, min_features_to_select=10, n_features
         if ml_type == 'regression':
             estimator = LinearRegression()
         elif ml_type == 'classification':
-            estimator = DecisionTreeClassifier()
+            estimator = DecisionTreeClassifier(class_weight='balanced')
         elif ml_type == 'clustering':
             estimator = KMeans()
         else:
@@ -66,7 +68,7 @@ def select_features(X_train, y_train=None, min_features_to_select=10, n_features
         selector.fit(X_train, y_train)
 
     # Plot number of features VS. cross-validation scores
-    plt.figure()
+    plt.figure(figsize=(16, 9))
     plt.xlabel("Number of features selected")
     plt.ylabel("Cross validation score (nb of correct classifications)")
     plt.plot(range(1, len(selector.cv_results_['mean_test_score']) + 1), selector.cv_results_['mean_test_score'])
@@ -77,25 +79,24 @@ def select_features(X_train, y_train=None, min_features_to_select=10, n_features
     duration = end_time - start_time
     logging.info(f"Feature selection completed in {duration:.2f} seconds")
     
-    if n_features_to_select is not None and n_features_to_select < min_features_to_select:
-        logging.info(f"Requested number of features ({n_features_to_select}) is less than the minimum number of features to select ({min_features_to_select}). Selecting {min_features_to_select} features.")
-        n_features_to_select = min_features_to_select
+    optimal_num_features = selector.n_features_
+    optimal_features_selected = X_train.columns[selector.support_].tolist()
     
-    if n_features_to_select is None:
-        optimal_num_features = selector.n_features_
-        selected_features = X_train.columns[selector.support_].tolist()
-        logging.info(f"Optimal number of features : {optimal_num_features}")
-        logging.info(f"Selected features : {selected_features}")
-    else:
-        ranked_features = sorted(zip(selector.ranking_, X_train.columns))
-        selected_features = [feature for _, feature in ranked_features[:selector.n_features_]]
-        if n_features_to_select > len(selected_features):
-            logging.info(f"Requested number of features ({n_features_to_select}) is greater than the optimal number of features ({len(selected_features)}). All features selected by RFECV are used.")
-        else:
-            selected_features = selected_features[:n_features_to_select]
-        logging.info(f"Number of features selected: {len(selected_features)}")
-        logging.info(f"Selected features : {selected_features}")
+    ranked_features = sorted(zip(selector.ranking_, X_train.columns))
+    selected_features = [feature for _, feature in ranked_features[:selector.n_features_]]
+    if n_features_to_select is not None and n_features_to_select < optimal_num_features:
+        logging.info(f"Requested number of features ({n_features_to_select}) is less than the optimal number of features ({optimal_num_features}).")
+        selected_features = selected_features[:n_features_to_select]
+    elif n_features_to_select is not None and n_features_to_select > optimal_num_features:
+        logging.info(f"Requested number of features ({n_features_to_select}) is greater than the optimal number of features ({optimal_num_features}). All features selected by RFECV are used.")
 
+    logging.info(f"Number of features selected: {len(selected_features)}")
+    logging.info(f"Selected features : {selected_features}")
+    
+    if n_features_to_select is not None and n_features_to_select < optimal_num_features:
+        logging.info(f"Optimal number of features : {optimal_num_features}")
+        logging.info(f"Optimal features selected : {optimal_features_selected}")
+    
     return selected_features
 
 
