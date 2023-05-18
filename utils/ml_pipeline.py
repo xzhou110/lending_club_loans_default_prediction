@@ -27,68 +27,19 @@ logging.basicConfig(level=logging.INFO)
 
 
 class MLPipeline:
-    """
-    A class used to preprocess data for machine learning.
-
-
-    Attributes
-    ----------
-    data_raw : pandas.DataFrame
-        Raw data before preprocessing.
-    data_processed : pandas.DataFrame
-        Data after preprocessing.
-    label_encoding : dict
-        Dictionary mapping original class labels to encoded labels.
-    ml_type : str
-        Type of machine learning problem ('classification', 'regression', 'clustering').
-    selected_features : list
-        List of selected features after feature selection process.
-    best_model_instance: object
-        The trained model object that is found to have the best performance during hyperparameter tuning process.
-    
-    Methods
-    -------
-    preprocess_data(missing_threshold, max_unique_values_cat, correlation_threshold, n_features_to_select, estimator, n_samples)
-        Preprocess the data by handling missing values, encoding categorical variables, handling date columns, etc.
-    encode_labels(df, label)
-        Encode the class labels in the data.
-    drop_missing_value_columns(df, missing_threshold)
-        Drop columns with a percentage of missing values higher than a specified threshold.
-    process_date_columns(df)
-        Process date columns by converting them to the number of days relative to the current date.
-    handle_missing_values_numerical(df)
-        Handle missing values in numerical columns by replacing them with the median of the column.
-    handle_extreme_values_numerical(df)
-        Handle extreme values in numerical columns by winsorizing them.
-    create_dummy_variables(df, max_unique_values_cat)
-        Create dummy variables for categorical columns with a number of unique values lower than a specified threshold.
-    handle_high_correlation(df, correlation_threshold)
-        Remove one of a pair of features with a correlation higher than a specified threshold.
-    standardize_numerical_columns(df)
-        Standardize numerical columns to have a mean of 0 and a standard deviation of 1.
-    clean_feature_names(df)
-        Clean feature names to ensure compatibility with XGBoost.
-    train_and_evaluate_model(model, X_train, y_train, X_test, y_test)
-        Train and evaluate a model, returning several metrics.
-    downsample_data(X, y, target_records=50000, random_state=42)
-        Downsample the data to a specified number of records.
-    fit_model(search_type, model, grid, X_train, y_train, scoring_metric='ROC AUC')
-        Fit a model using either GridSearchCV or RandomizedSearchCV, or without any hyperparameter tuning.
-    plot_roc_curve(model_name, y_test, y_pred_proba, ax)
-        Plot the ROC curve for a model.
-    plot_top_n_features(n=10)
-        Plot the top n features of importance for the best model.
-    """
     
     def __init__(self, data, ml_type='classification'):
         self.data = data
         self.data_processed = None
         self.ml_type = ml_type
+        self.X_train = None
+        self.X_test = None
+        self.y_train = None
+        self.y_test = None
         self.selected_features = None
         self.best_model_instance = None
         self.top_n_features = None
-        
-        
+    
     def preprocess_data(self, label='label', missing_threshold=0.9, max_unique_values_cat=50, correlation_threshold=0.9):
         """
         Preprocesses the input data for use in a machine learning model.This function performs various preprocessing steps, including: 
@@ -123,70 +74,78 @@ class MLPipeline:
             The preprocessed data, including the target variable column.
 
         """
-    
+
         df = self.data.copy()
 
+        # Separate out the target column and the feature columns
+        y = df[label] if df[label] is not None else None
+        X = df.drop(columns=[label])
+
         # Encoding labels and printing out the encoding
-        df, y, label_encoding = self.encode_labels(df, label)
+        y, label_encoding = self.encode_labels(y)
         logging.info(f"Label encoding: {label_encoding}")
 
         # Dropping columns with missing values above the threshold
-        df = self.drop_missing_value_columns(df, missing_threshold)
+        X = self.drop_missing_value_columns(X, missing_threshold)
         logging.info("Dropped columns with missing values above the threshold")
 
         # Processing date columns and renaming them
-        df = self.process_date_columns(df)
+        X = self.process_date_columns(X)
         logging.info("Processed date columns")
 
         # Handling missing values for numerical columns
-        df = self.handle_missing_values_numerical(df)
+        X = self.handle_missing_values_numerical(X)
         logging.info("Handled missing values for numerical columns")
 
         # Handling extreme values for numerical columns
-        df = self.handle_extreme_values_numerical(df)
+        X = self.handle_extreme_values_numerical(X)
         logging.info("Handled extreme values for numerical columns")
 
         # Creating dummy variables for categorical columns
-        df = self.create_dummy_variables(df, max_unique_values_cat)
+        X = self.create_dummy_variables(X, max_unique_values_cat)
         logging.info("Created dummy variables for categorical columns")
 
-        numerical_columns = df.select_dtypes(include=['number']).columns.tolist()
-        categorical_columns = df.select_dtypes(include=['object']).columns.tolist()
-
         # Handling high correlation among numerical columns
-        df = self.handle_high_correlation(df, correlation_threshold)
+        X = self.handle_high_correlation(X, correlation_threshold)
         logging.info("Handled high correlation among numerical columns")
 
         # Standardizing numerical columns
-        df = self.standardize_numerical_columns(df)
+        X = self.standardize_numerical_columns(X)
         logging.info("Standardized numerical columns")
-        
+
         # Clean feature names for XGBoost
-        df = self.clean_feature_names(df)
+        X = self.clean_feature_names_for_xgboost(X)
         logging.info("Cleaned feature names for XGBoost")
 
         # Combine the processed features and the label into a single DataFrame
-        df.reset_index(drop=True, inplace=True)
-        result_df = pd.concat([df, pd.Series(y, name=label)], axis=1)
-        
+        X.reset_index(drop=True, inplace=True)
+        result_df = pd.concat([X, pd.Series(y, name=label)], axis=1)
+
+        # Split the data into train and test sets
+        X_processed = result_df.drop(columns=['label'])
+        y_processed = result_df['label']
+                                     
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X_processed, y_processed, test_size=0.3, random_state=42)
         self.data_processed = result_df
+
         return result_df
 
-
-    def select_features(self, n_features_to_select=30, estimator=None, n_samples=None):
+    def select_features(self, min_features_to_select=10, n_features_to_select=None, ml_type='classification', estimator=None, n_samples=None):
         """
-        Selects the most relevant features for a machine learning model using Recursive Feature Elimination with Cross-Validation (RFECV)
-        with a default estimator based on the specified problem type.
+        Selects the most relevant features for a machine learning model using Recursive Feature Elimination 
+        with Cross-Validation (RFECV) with a default estimator based on the specified problem type.
 
         Parameters:
         -----------
-        X : pandas.DataFrame
-            The input features (independent variables) to perform feature selection on.
-        y : pandas.Series or numpy.array, optional, default: None
-            The target variable (dependent variable) corresponding to the input features. Required for
+        X_train : pandas.DataFrame
+            The input training features (independent variables) to perform feature selection on.
+        y_train : pandas.Series or numpy.array, optional, default: None
+            The target training variable (dependent variable) corresponding to the input features. Required for
             classification and regression problems.
-        n_features_to_select : int, optional, default: 30
-            The number of top features to select.
+        min_features_to_select : int, default=10
+            The minimum number of features to select. This number of features will always be scored.
+        n_features_to_select : int, optional, default: None
+            The number of top features to select. If None, an optimal number will be determined by cross-validation.
         ml_type : str, optional, default: 'classification'
             The type of machine learning problem. Supported values are 'regression', 'classification', and 'clustering'.
         estimator : sklearn-compatible estimator, optional, default: None
@@ -200,28 +159,23 @@ class MLPipeline:
             The names of the selected features.
 
         """
-        
-        X = self.data_processed.drop(columns = ['label'])
-        try: 
-            y = self.data_processed['label']
-        except:
-            y = None
-            
+        X_train = self.X_train
+        y_train = self.y_train if self.y_train is not None else None
         ml_type = self.ml_type
-            
+ 
         start_time = time.time()
 
         # Downsample the data if n_samples is provided
         if n_samples is not None:
-            X = X.sample(n_samples, random_state=42)
-            if y is not None:
-                y = y.loc[X.index]
+            X_train = X_train.sample(n_samples, random_state=42)
+            if y_train is not None:
+                y_train = y_train.loc[X_train.index]
 
         if estimator is None:
             if ml_type == 'regression':
                 estimator = LinearRegression()
             elif ml_type == 'classification':
-                estimator = DecisionTreeClassifier()
+                estimator = DecisionTreeClassifier(class_weight='balanced')
             elif ml_type == 'clustering':
                 estimator = KMeans()
             else:
@@ -230,41 +184,68 @@ class MLPipeline:
         cv = 5 if ml_type != 'clustering' else None
 
         logging.info("Starting feature selection...")
+        selector = RFECV(estimator, step=1, min_features_to_select=min_features_to_select, cv=cv)
         if ml_type == 'clustering':
-            # Step = 1: Eliminate one feature at a time in each iteration.
-            selector = RFECV(estimator, min_features_to_select=n_features_to_select, step=1, cv=cv)
-            selector.fit(X)
+            selector.fit(X_train)
         else:
-            if y is None:
-                raise ValueError("y cannot be None for classification or regression problems.")
-            selector = RFECV(estimator, min_features_to_select=n_features_to_select, step=1, cv=cv)
-            selector.fit(X, y)
+            if y_train is None:
+                raise ValueError("y_train cannot be None for classification or regression problems.")
+            selector.fit(X_train, y_train)
 
-        selected_features = X.columns[selector.support_].tolist()
+        # Plot number of features VS. cross-validation scores
+        plt.figure(figsize=(16, 9))
+        plt.xlabel("Number of features selected")
+        plt.ylabel("Cross validation score (nb of correct classifications)")
+        plt.plot(range(1, len(selector.cv_results_['mean_test_score']) + 1), selector.cv_results_['mean_test_score'])
+        plt.xticks(np.arange(0, len(selector.cv_results_['mean_test_score']) + 1, 10)) # 10 as step for x-axis
+        plt.show()
 
         end_time = time.time()
         duration = end_time - start_time
         logging.info(f"Feature selection completed in {duration:.2f} seconds")
+
+        optimal_num_features = selector.n_features_
+        optimal_features_selected = X_train.columns[selector.support_].tolist()
+
+        ranked_features = sorted(zip(selector.ranking_, X_train.columns))
+        selected_features = [feature for _, feature in ranked_features[:selector.n_features_]]
+        if n_features_to_select is not None and n_features_to_select < optimal_num_features:
+            logging.info(f"Requested number of features ({n_features_to_select}) is less than the optimal number of features ({optimal_num_features}).")
+            selected_features = selected_features[:n_features_to_select]
+        elif n_features_to_select is not None and n_features_to_select > optimal_num_features:
+            logging.info(f"Requested number of features ({n_features_to_select}) is greater than the optimal number of features ({optimal_num_features}). All features selected by RFECV are used.")
+
+        logging.info(f"Number of features selected: {len(selected_features)}")
+        logging.info(f"Selected features : {selected_features}")
+
+        if n_features_to_select is not None and n_features_to_select < optimal_num_features:
+            logging.info(f"Optimal number of features : {optimal_num_features}")
+            logging.info(f"Optimal features selected : {optimal_features_selected}")
         
         self.selected_features = selected_features
         return selected_features
     
-    
-    def run_classification_models(self, search_type=None, scoring_metric='roc auc', n_samples=None):
+    def run_classification_models(self, n_samples=None, search_type=None, scoring_metric='roc auc'):
         """
         Train and evaluate multiple classification models on the given dataset.
 
         This function trains and evaluate five different classification models: Logistic Regression, K-Nearest Neighbors,
         Support Vector Machine, Random Forest, and XGBoost. It also performs hyperparameter tuning if specified and plots
         ROC curves for all models. It evaluates model performance based on user defined scoring metric. It saves the best 
-        performing model into results folder
+        performing model into results folder.
 
         Parameters
         ----------
-        X_processed : pd.DataFrame
-            The pre-processed feature matrix (X) as a pandas DataFrame.
-        y : pd.Series
-            The target variable (y) as a pandas Series.
+        X_train : pd.DataFrame
+            The training feature matrix (X) as a pandas DataFrame.
+        y_train : pd.Series
+            The target variable for training (y) as a pandas Series.
+        X_test : pd.DataFrame
+            The testing feature matrix (X) as a pandas DataFrame.
+        y_test : pd.Series
+            The target variable for testing (y) as a pandas Series.
+        n_samples : int, optional, default: None
+            Number of samples to downsample the data to. If None, no downsampling is performed.
         search_type : str, optional, default: None
             The type of hyperparameter search to perform. Choices are 'grid', 'random', or None. Default is None.
         scoring_metric : str, optional, default: 'roc auc'
@@ -277,20 +258,15 @@ class MLPipeline:
             The best performing model instance (fitted) according to the highest score of the scoring_metric.
         """
         
-        data = self.data_processed if n_samples==None else self.data_processed.sample(n_samples, random_state=42)
-        X_processed = data[self.selected_features]
-        try: 
-            y = data['label']
-        except:
-            y = None
+        X_train, y_train, X_test, y_test = self.X_train[self.selected_features], self.y_train, self.X_test[self.selected_features], self.y_test
         
-            
-        # Split the data into train and test sets
-        X_train, X_test, y_train, y_test = train_test_split(X_processed, y, test_size=0.2, random_state=42)
-
         # Handling class imbalance with SMOTE
         smote = SMOTE(random_state=42)
         X_train, y_train = smote.fit_resample(X_train, y_train)
+
+        # Downsample data if n_samples is provided
+        if n_samples is not None:
+            X_train, y_train = self.downsample_data(X_train, y_train, target_records=n_samples)
 
         # Hyperparameter grids
         lr_grid = {'C': [0.001, 0.01, 0.1, 1, 10, 100], 'max_iter': [500, 1000, 3000]}
@@ -403,84 +379,77 @@ class MLPipeline:
 
         # Return the best performing model object for future reuse
         self.best_model_instance = best_model_instance
+        
         return best_model_instance
-
-
-    def encode_labels(self, df, label):
-        y, unique_labels = pd.factorize(df[label])
+    
+    def encode_labels(self, y):
+        y, unique_labels = pd.factorize(y)
         label_encoding = {label: idx for idx, label in enumerate(unique_labels)}
-        df = df.drop(columns=[label])
-        return df, y, label_encoding
+        return y, label_encoding
 
+    def drop_missing_value_columns(self, X, missing_threshold):
+        return X.loc[:, X.isna().mean() < missing_threshold]
 
-    def drop_missing_value_columns(self, df, missing_threshold):
-        return df.loc[:, df.isna().mean() < missing_threshold]
-
-
-    def process_date_columns(self, df):
-        date_columns = [col for col in df.columns if 'date' in col.lower()]
+    def process_date_columns(self, X):
+        date_columns = [col for col in X.columns if 'date' in col.lower()]
 
         for col in date_columns:
-            df[col] = (datetime.datetime.now() - pd.to_datetime(df[col])).dt.days
-            df.rename(columns={col: col + '_days'}, inplace=True)
+            X[col] = (datetime.datetime.now() - pd.to_datetime(X[col])).dt.days
+            X.rename(columns={col: col + '_days'}, inplace=True)
 
-        return df
+        return X
 
-
-    def handle_missing_values_numerical(self, df):
-        numerical_columns = df.select_dtypes(include=['number']).columns.tolist()
-
-        for col in numerical_columns:
-            df[col].fillna(df[col].median(), inplace=True)
-
-        return df
-
-
-    def handle_extreme_values_numerical(self, df):
-        numerical_columns = df.select_dtypes(include=['number']).columns.tolist()
-        lower_bound = df[numerical_columns].quantile(0.05)
-        upper_bound = df[numerical_columns].quantile(0.95)
+    def handle_missing_values_numerical(self, X):
+        numerical_columns = X.select_dtypes(include=['number']).columns.tolist()
 
         for col in numerical_columns:
-            df[col] = np.where(df[col] < lower_bound[col], lower_bound[col], df[col])
-            df[col] = np.where(df[col] > upper_bound[col], upper_bound[col], df[col])
+            X[col].fillna(X[col].median(), inplace=True)
 
-        return df
+        return X
 
+    def handle_extreme_values_numerical(self, X):
+        numerical_columns = X.select_dtypes(include=['number']).columns.tolist()
+        lower_bound = X[numerical_columns].quantile(0.05)
+        upper_bound = X[numerical_columns].quantile(0.95)
 
-    def create_dummy_variables(self, df, max_unique_values_cat):
-        categorical_columns = df.select_dtypes(include=['object']).columns.tolist()
-        categorical_columns_to_drop = [col for col in categorical_columns if df[col].nunique() > max_unique_values_cat]
-        df.drop(columns=categorical_columns_to_drop, inplace=True)
+        for col in numerical_columns:
+            X[col] = np.where(X[col] < lower_bound[col], lower_bound[col], X[col])
+            X[col] = np.where(X[col] > upper_bound[col], upper_bound[col], X[col])
+
+        return X
+
+    def create_dummy_variables(self, X, max_unique_values_cat):
+        categorical_columns = X.select_dtypes(include=['object']).columns.tolist()
+        categorical_columns_to_drop = [col for col in categorical_columns if X[col].nunique() > max_unique_values_cat]
+        X.drop(columns=categorical_columns_to_drop, inplace=True)
         remaining_categorical_columns = list(set(categorical_columns) - set(categorical_columns_to_drop))
-        df = pd.get_dummies(df, columns=remaining_categorical_columns, dummy_na=True, drop_first=True)
+        X = pd.get_dummies(X, columns=remaining_categorical_columns, dummy_na=True, drop_first=True)
 
-        return df
+        return X
 
-
-    def handle_high_correlation(self, df, correlation_threshold):
-        numerical_columns = df.select_dtypes(include=['number']).columns.tolist()
-        corr_matrix = df[numerical_columns].corr().abs()
+    def handle_high_correlation(self, X, correlation_threshold):
+        numerical_columns = X.select_dtypes(include=['number']).columns.tolist()
+        corr_matrix = X[numerical_columns].corr().abs()
         upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(np.bool))
         columns_to_drop = [col for col in upper.columns if any(upper[col] > correlation_threshold)]
-        df.drop(columns=columns_to_drop, inplace=True)
-        
-        return df
+        X.drop(columns=columns_to_drop, inplace=True)
+        return X
 
-    def standardize_numerical_columns(self, df):
-        numerical_columns = df.select_dtypes(include=['number']).columns.tolist()
+    def standardize_numerical_columns(self, X):
+        numerical_columns = X.select_dtypes(include=['number']).columns.tolist()
         scaler = StandardScaler()
-        df[numerical_columns] = scaler.fit_transform(df[numerical_columns])
-        
-        return df
-    
-    
-    def clean_feature_names(self, df):
-        # Replace problematic characters with underscore
-        df.columns = df.columns.astype(str).str.replace('[', '_replace_bracket_open_', regex=True).str.replace(']', '_replace_bracket_close_', regex=True).str.replace('<', '_smaller_than_', regex=True)
-        return df
-    
-    
+        X[numerical_columns] = scaler.fit_transform(X[numerical_columns])
+        return X
+
+    def clean_feature_names_for_xgboost(self, X):
+        """
+        Clean column names to meet the requirements of XGBoost.
+        XGBoost (at least the version used at the time of writing) does not accept feature names with special characters like '<', '[' or ']'.
+        This function replaces these special characters with corresponding text representations.
+        """
+        X.columns = X.columns.astype(str).str.replace('[', '_replace_bracket_open_', regex=True).str.replace(']', '_replace_bracket_close_', regex=True).str.replace('<', '_smaller_than_', regex=True)
+        return X
+
     def train_and_evaluate_model(self, model, X_train, y_train, X_test, y_test):
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
@@ -494,7 +463,10 @@ class MLPipeline:
         return accuracy, precision, recall, f1, roc_auc
 
 
-    def downsample_data(self, X, y, target_records=50000, random_state=42):
+    def downsample_data(self, X, y, target_records=10000, random_state=42):
+        if len(X) <= target_records:
+            return X, y
+
         combined_data = pd.concat([X, y], axis=1)
         downsampled_data = combined_data.sample(n=target_records, random_state=random_state)
         X_downsampled = downsampled_data.iloc[:, :-1]
@@ -539,7 +511,7 @@ class MLPipeline:
         ----------
         model : object
             The model object.
-        X_processed : pd.DataFrame
+        X : pd.DataFrame
             The feature matrix (X) as a pandas DataFrame.
         n : int, optional, default: 10
             The number of top features to plot.
@@ -550,7 +522,7 @@ class MLPipeline:
         """
         
         model = self.best_model_instance
-        X_processed = self.data_processed[self.selected_features]
+        X = self.X_train
         
         try:
             importances = model.feature_importances_
@@ -571,9 +543,8 @@ class MLPipeline:
         top_n_indices = indices[:n]
 
         # Get the feature names from X_processed
-        feature_names = X_processed.columns.tolist()
-        
-        # Store the top n feature names and their importances in an instance variable
+        feature_names = X.columns.tolist()
+
         self.top_n_features = {feature_names[i]: importances[i] for i in top_n_indices}
 
         # Prepare colors. Create a custom colormap that goes from medium green to light blue.
@@ -589,6 +560,5 @@ class MLPipeline:
         plt.grid(axis='x')
         plt.tight_layout()
         plt.show()
-        
-        return self.top_n_features 
 
+        return self.top_n_features

@@ -19,21 +19,27 @@ from imblearn.over_sampling import SMOTE
 import matplotlib.pyplot as plt
 
 
-def run_classification_models(X_processed, y, search_type=None, scoring_metric='roc auc'):
+def run_classification_models(X_train, y_train, X_test, y_test, n_samples=None, search_type=None, scoring_metric='roc auc'):
     """
     Train and evaluate multiple classification models on the given dataset.
 
     This function trains and evaluate five different classification models: Logistic Regression, K-Nearest Neighbors,
     Support Vector Machine, Random Forest, and XGBoost. It also performs hyperparameter tuning if specified and plots
     ROC curves for all models. It evaluates model performance based on user defined scoring metric. It saves the best 
-    performing model into results folder
+    performing model into results folder.
 
     Parameters
     ----------
-    X_processed : pd.DataFrame
-        The pre-processed feature matrix (X) as a pandas DataFrame.
-    y : pd.Series
-        The target variable (y) as a pandas Series.
+    X_train : pd.DataFrame
+        The training feature matrix (X) as a pandas DataFrame.
+    y_train : pd.Series
+        The target variable for training (y) as a pandas Series.
+    X_test : pd.DataFrame
+        The testing feature matrix (X) as a pandas DataFrame.
+    y_test : pd.Series
+        The target variable for testing (y) as a pandas Series.
+    n_samples : int, optional, default: None
+        Number of samples to downsample the data to. If None, no downsampling is performed.
     search_type : str, optional, default: None
         The type of hyperparameter search to perform. Choices are 'grid', 'random', or None. Default is None.
     scoring_metric : str, optional, default: 'roc auc'
@@ -46,13 +52,14 @@ def run_classification_models(X_processed, y, search_type=None, scoring_metric='
         The best performing model instance (fitted) according to the highest score of the scoring_metric.
     """
     
-    # Split the data into train and test sets
-    X_train, X_test, y_train, y_test = train_test_split(X_processed, y, test_size=0.2, random_state=42)
-    
     # Handling class imbalance with SMOTE
     smote = SMOTE(random_state=42)
     X_train, y_train = smote.fit_resample(X_train, y_train)
-
+    
+    # Downsample data if n_samples is provided
+    if n_samples is not None:
+        X_train, y_train = downsample_data(X_train, y_train, target_records=n_samples)
+    
     # Hyperparameter grids
     lr_grid = {'C': [0.001, 0.01, 0.1, 1, 10, 100], 'max_iter': [500, 1000, 3000]}
     knn_grid = {'n_neighbors': list(range(1, 31))}
@@ -179,7 +186,10 @@ def train_and_evaluate_model(model, X_train, y_train, X_test, y_test):
     return accuracy, precision, recall, f1, roc_auc
 
 
-def downsample_data(X, y, target_records=50000, random_state=42):
+def downsample_data(X, y, target_records=10000, random_state=42):
+    if len(X) <= target_records:
+        return X, y
+    
     combined_data = pd.concat([X, y], axis=1)
     downsampled_data = combined_data.sample(n=target_records, random_state=random_state)
     X_downsampled = downsampled_data.iloc[:, :-1]
@@ -216,7 +226,7 @@ def plot_roc_curve(model_name, y_test, y_pred_proba, ax):
     ax.plot(fpr, tpr, label=f"{model_name} (AUC = {roc_auc:.4f})")
     
     
-def plot_top_n_features(model, X_processed, n=10):
+def plot_top_n_features(model, X, n=10):
     """
     Plot the top n features of importance for a given model.
 
@@ -224,7 +234,7 @@ def plot_top_n_features(model, X_processed, n=10):
     ----------
     model : object
         The model object.
-    X_processed : pd.DataFrame
+    X : pd.DataFrame
         The feature matrix (X) as a pandas DataFrame.
     n : int, optional, default: 10
         The number of top features to plot.
@@ -252,7 +262,7 @@ def plot_top_n_features(model, X_processed, n=10):
     top_n_indices = indices[:n]
 
     # Get the feature names from X_processed
-    feature_names = X_processed.columns.tolist()
+    feature_names = X.columns.tolist()
     
     top_n_features = {}
     top_n_features = {feature_names[i]: importances[i] for i in top_n_indices}
