@@ -182,7 +182,7 @@ class MLPipeline:
 
         return result_df
 
-    def select_features(self, min_features_to_select=10, n_features_to_select=None, ml_type='classification', estimator=None, n_samples=None):
+    def select_features(self, n_features_to_select=None, ml_type='classification', estimator=None, n_samples=None):
         """
         Selects the most relevant features for a machine learning model using Recursive Feature Elimination 
         with Cross-Validation (RFECV) with a default estimator based on the specified problem type.
@@ -194,8 +194,6 @@ class MLPipeline:
         y_train : pandas.Series or numpy.array, optional, default: None
             The target training variable (dependent variable) corresponding to the input features. Required for
             classification and regression problems.
-        min_features_to_select : int, default=10
-            The minimum number of features to select. This number of features will always be scored.
         n_features_to_select : int, optional, default: None
             The number of top features to select. If None, an optimal number will be determined by cross-validation.
         ml_type : str, optional, default: 'classification'
@@ -214,7 +212,7 @@ class MLPipeline:
         X_train = self.X_train
         y_train = self.y_train if self.y_train is not None else None
         ml_type = self.ml_type
- 
+        
         start_time = time.time()
 
         # Downsample the data if n_samples is provided
@@ -236,7 +234,7 @@ class MLPipeline:
         cv = 5 if ml_type != 'clustering' else None
 
         logging.info("Starting feature selection...")
-        selector = RFECV(estimator, step=1, min_features_to_select=min_features_to_select, cv=cv)
+        selector = RFECV(estimator, step=1, cv=cv)
         if ml_type == 'clustering':
             selector.fit(X_train)
         else:
@@ -259,22 +257,29 @@ class MLPipeline:
         optimal_num_features = selector.n_features_
         optimal_features_selected = X_train.columns[selector.support_].tolist()
 
-        ranked_features = sorted(zip(selector.ranking_, X_train.columns))
-        selected_features = [feature for _, feature in ranked_features[:selector.n_features_]]
         if n_features_to_select is not None and n_features_to_select < optimal_num_features:
             logging.info(f"Requested number of features ({n_features_to_select}) is less than the optimal number of features ({optimal_num_features}).")
-            selected_features = selected_features[:n_features_to_select]
+            selected_features = optimal_features_selected[:n_features_to_select]
         elif n_features_to_select is not None and n_features_to_select > optimal_num_features:
-            logging.info(f"Requested number of features ({n_features_to_select}) is greater than the optimal number of features ({optimal_num_features}). All features selected by RFECV are used.")
+            logging.info(f"Requested number of features ({n_features_to_select}) is greater than the optimal number of features ({optimal_num_features}).")
+            selector = RFECV(estimator, step=1, min_features_to_select=n_features_to_select, cv=cv)
+            selector.fit(X_train, y_train)
+            selected_features = X_train.columns[selector.support_].tolist()[:n_features_to_select]
+        elif n_features_to_select == optimal_num_features:
+            logging.info(f"Requested number of features ({n_features_to_select}) is equal to the optimal number of features suggested by RFECV.")
+            selected_features = optimal_features_selected
+        else:
+            selected_features = optimal_features_selected
 
         logging.info(f"Number of features selected: {len(selected_features)}")
         logging.info(f"Selected features : {selected_features}")
 
-        if n_features_to_select is not None and n_features_to_select < optimal_num_features:
+        if n_features_to_select is not None and n_features_to_select != optimal_num_features:
             logging.info(f"Optimal number of features : {optimal_num_features}")
             logging.info(f"Optimal features selected : {optimal_features_selected}")
         
         self.selected_features = selected_features
+        
         return selected_features
     
     def run_classification_models(self, n_samples=None, search_type=None, scoring_metric='roc auc'):
@@ -589,7 +594,9 @@ class MLPipeline:
             except AttributeError:
                 print("The model does not have 'feature_importances_' or 'coef_' attribute.")
                 return
-
+        
+        n = len(self.selected_features) if n>len(self.selected_features) else n
+        
         # Get feature importances and indices
         indices = np.argsort(importances)[::-1]
         top_n_indices = indices[:n]
