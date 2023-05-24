@@ -17,6 +17,7 @@ def preprocess_data(df, label='label', missing_threshold=0.9, max_unique_values_
     6. Create dummy variables for categorical columns: Convert categorical columns with a number of unique values below a specified threshold into dummy variables.
     7. Handle high correlation among numerical columns: Drop one column from each pair of highly correlated columns based on a specified correlation threshold.
     8. Standardize numerical columns: Scale the numerical columns to have a mean of 0 and a standard deviation of 1.
+    9. Clean up feature names for XgBoost model: The XgBoost model has requirement that feature names can't include specific characters, such as '[]', '<', etc.
 
     Parameters:
     -----------
@@ -155,7 +156,10 @@ def clean_feature_names_for_xgboost(X):
     XGBoost (at least the version used at the time of writing) does not accept feature names with special characters like '<', '[' or ']'.
     This function replaces these special characters with corresponding text representations.
     """
-    X.columns = X.columns.astype(str).str.replace('[', '_replace_bracket_open_', regex=True).str.replace(']', '_replace_bracket_close_', regex=True).str.replace('<', '_smaller_than_', regex=True)
+    X.columns = X.columns.astype(str)\
+                 .str.replace('[', '_replace_bracket_open_', regex=True)\
+                 .str.replace(']', '_replace_bracket_close_', regex=True)\
+                 .str.replace('<', '_smaller_than_', regex=True)
     return X
 
 
