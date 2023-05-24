@@ -66,32 +66,32 @@ class LoggingPipeline(Pipeline):
         logging.info(f"Finished {self.steps[-1][0]}, Input shape: {message}, Output shape: {X.shape}, Column names: {X.columns.tolist()}")
         return self
 
-def preprocessing_pipeline(df):
-    # Define the pipeline steps
-    date_pipeline = LoggingPipeline([
-    ('to_days', DateTransformer())
-])
+# def preprocessing_pipeline(df):
+#     # Define the pipeline steps
+#     date_pipeline = LoggingPipeline([
+#     ('to_days', DateTransformer())
+# ])
 
-    numerical_pipeline = LoggingPipeline([
-        ('imputer', SimpleImputer(strategy='median')),
-        ('winsorizer', ExtremeValuesNumericalHandler()),
-        ('scaler', StandardScaler()),
-    ])
+#     numerical_pipeline = LoggingPipeline([
+#         ('imputer', SimpleImputer(strategy='median')),
+#         ('winsorizer', ExtremeValuesNumericalHandler()),
+#         ('scaler', StandardScaler()),
+#     ])
 
-    categorical_pipeline = LoggingPipeline([
-        ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
-        ('onehot', OneHotEncoder(handle_unknown='ignore'))
-    ])
-    # Get the column names
-    date_columns = [col for col in df.columns if 'date' in col.lower()]
-    numerical_columns = df.select_dtypes(include=['number']).columns.tolist()
-    categorical_columns = df.select_dtypes(include=['object']).columns.tolist()
+#     categorical_pipeline = LoggingPipeline([
+#         ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+#         ('onehot', OneHotEncoder(handle_unknown='ignore'))
+#     ])
+#     # Get the column names
+#     date_columns = [col for col in df.columns if 'date' in col.lower()]
+#     numerical_columns = df.select_dtypes(include=['number']).columns.tolist()
+#     categorical_columns = df.select_dtypes(include=['object']).columns.tolist()
 
-    # Combine the pipelines
-    full_pipeline = ColumnTransformer(transformers=[
-        ('date', date_pipeline, date_columns),
-        ('num', numerical_pipeline, numerical_columns),
-        ('cat', categorical_pipeline, categorical_columns)
-    ])
+#     # Combine the pipelines
+#     full_pipeline = ColumnTransformer(transformers=[
+#         ('date', date_pipeline, date_columns),
+#         ('num', numerical_pipeline, numerical_columns),
+#         ('cat', categorical_pipeline, categorical_columns)
+#     ])
 
-    return full_pipeline
+#     return full_pipeline
