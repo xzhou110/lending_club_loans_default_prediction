@@ -226,7 +226,7 @@ def plot_roc_curve(model_name, y_test, y_pred_proba, ax):
     ax.plot(fpr, tpr, label=f"{model_name} (AUC = {roc_auc:.4f})")
     
     
-def plot_top_n_features(model, feature_names, n=10):
+def plot_top_n_features(model, feature_names, selected_features, n=10):
     """
     Plot the top n features of importance for a given model.
 
@@ -256,7 +256,9 @@ def plot_top_n_features(model, feature_names, n=10):
         except AttributeError:
             print("The model does not have 'feature_importances_' or 'coef_' attribute.")
             return
-
+    
+    n = len(selected_features) if n>len(selected_features) else n
+    
     # Get feature importances and indices
     indices = np.argsort(importances)[::-1]
     top_n_indices = indices[:n]
