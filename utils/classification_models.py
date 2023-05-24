@@ -44,7 +44,7 @@ def run_classification_models(X_train, y_train, X_test, y_test, n_samples=None, 
         The type of hyperparameter search to perform. Choices are 'grid', 'random', or None. Default is None.
     scoring_metric : str, optional, default: 'roc auc'
         The scoring metric to optimize during hyperparameter tuning and to select the best model. 
-        Some options are 'accuracy', 'precision', 'recall', 'f1', and 'roc auc'.
+        Some options are 'accuracy', 'precision', 'recall', 'f1 score', and 'roc auc'.
 
     Returns
     -------
@@ -226,7 +226,7 @@ def plot_roc_curve(model_name, y_test, y_pred_proba, ax):
     ax.plot(fpr, tpr, label=f"{model_name} (AUC = {roc_auc:.4f})")
     
     
-def plot_top_n_features(model, X, n=10):
+def plot_top_n_features(model, feature_names, n=10):
     """
     Plot the top n features of importance for a given model.
 
@@ -234,8 +234,8 @@ def plot_top_n_features(model, X, n=10):
     ----------
     model : object
         The model object.
-    X : pd.DataFrame
-        The feature matrix (X) as a pandas DataFrame.
+    feature_names : list
+        The names of features. X.columns should be used here.
     n : int, optional, default: 10
         The number of top features to plot.
 
@@ -260,9 +260,6 @@ def plot_top_n_features(model, X, n=10):
     # Get feature importances and indices
     indices = np.argsort(importances)[::-1]
     top_n_indices = indices[:n]
-
-    # Get the feature names from X_processed
-    feature_names = X.columns.tolist()
     
     top_n_features = {}
     top_n_features = {feature_names[i]: importances[i] for i in top_n_indices}
