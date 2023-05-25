@@ -236,6 +236,8 @@ def plot_top_n_features(model, feature_names, selected_features, n=10):
         The model object.
     feature_names : list
         The names of features. X.columns should be used here.
+    selected_feature : list
+        The names of selected features. X.columns can be used here if no feature is selected.
     n : int, optional, default: 10
         The number of top features to plot.
 
